@@ -12,7 +12,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function GET() {
   try {
-    // 明日の0:00〜23:59を取得
+    // 明日の0:00〜23:59（JST）を取得
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(0, 0, 0, 0)
@@ -24,11 +24,11 @@ export async function GET() {
       .from('bookings')
       .select(`
         id,
-        start_time,
+        availability_slots!bookings_slot_id_fkey(start_time),
         profiles!bookings_guest_id_fkey(email, name)
       `)
-      .gte('start_time', tomorrow.toISOString())
-      .lte('start_time', end.toISOString())
+      .gte('availability_slots.start_time', tomorrow.toISOString())
+      .lte('availability_slots.start_time', end.toISOString())
 
     if (error) {
       console.error(error)
@@ -41,13 +41,17 @@ export async function GET() {
 
     let sent = 0
 
-    for (const booking of bookings) {
-      const profile = booking.profiles as any
+    for (const booking of bookings as any[]) {
+      const profile = booking.profiles
+      const slot = booking.availability_slots
+
       const email = profile?.email
       const name = profile?.name || 'お客様'
-      const time = new Date(booking.start_time).toLocaleString('ja-JP')
+      const slotStart = slot?.start_time
 
-      if (!email) continue
+      if (!email || !slotStart) continue
+
+      const time = new Date(slotStart).toLocaleString('ja-JP')
 
       await resend.emails.send({
         from: 'Ritz <noreply@ritz-personalgym.com>',

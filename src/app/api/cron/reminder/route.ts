@@ -22,7 +22,11 @@ export async function GET() {
 
     const { data: bookings, error } = await supabase
       .from('bookings')
-      .select('id, start_time, guests(email, name)')
+      .select(`
+        id,
+        start_time,
+        profiles!bookings_guest_id_fkey(email, full_name)
+      `)
       .gte('start_time', tomorrow.toISOString())
       .lte('start_time', end.toISOString())
 
@@ -38,9 +42,9 @@ export async function GET() {
     let sent = 0
 
     for (const booking of bookings) {
-      const guest = booking.guests?.[0]
-      const email = guest?.email
-      const name = guest?.name || 'お客様'
+      const profile = booking.profiles as any
+      const email = profile?.email
+      const name = profile?.full_name || 'お客様'
       const time = new Date(booking.start_time).toLocaleString('ja-JP')
 
       if (!email) continue

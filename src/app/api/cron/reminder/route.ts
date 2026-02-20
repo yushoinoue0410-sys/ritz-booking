@@ -28,30 +28,42 @@ export async function GET() {
 
     if (error) {
       console.error(error)
-      return Response.json({ error })
+      return Response.json({ error }, { status: 500 })
     }
 
     if (!bookings || bookings.length === 0) {
       return Response.json({ message: 'No bookings tomorrow' })
     }
 
-   for (const booking of bookings) {
-  const guest = booking.guests?.[0]
-  const email = guest?.email
-  const name = guest?.name || 'お客様'
-  const time = new Date(booking.start_time).toLocaleString('ja-JP')
+    let sent = 0
 
-  if (!email) continue
+    for (const booking of bookings) {
+      const guest = booking.guests?.[0]
+      const email = guest?.email
+      const name = guest?.name || 'お客様'
+      const time = new Date(booking.start_time).toLocaleString('ja-JP')
 
- await resend.emails.send({
-  from: 'Ritz <noreply@ritz-personalgym.com>',
-  to: email,
-  subject: '【Ritz】明日のご予約リマインド',
-  html: `
-    <h2>ご予約リマインド</h2>
-    <p>${name} 様</p>
-    <p>明日のご予約は以下の通りです。</p>
-    <p><strong>${time}</strong></p>
-    <p>お待ちしております。</p>
-  `,
-})
+      if (!email) continue
+
+      await resend.emails.send({
+        from: 'Ritz <noreply@ritz-personalgym.com>',
+        to: email,
+        subject: '【Ritz】明日のご予約リマインド',
+        html: `
+          <h2>ご予約リマインド</h2>
+          <p>${name} 様</p>
+          <p>明日のご予約は以下の通りです。</p>
+          <p><strong>${time}</strong></p>
+          <p>お待ちしております。</p>
+        `,
+      })
+
+      sent++
+    }
+
+    return Response.json({ success: true, sent })
+  } catch (err) {
+    console.error(err)
+    return Response.json({ error: 'Server error' }, { status: 500 })
+  }
+}

@@ -21,21 +21,30 @@ export async function GET() {
     end.setHours(23, 59, 59, 999)
 
     const { data: bookings, error } = await supabase
-  .from('bookings')
-  .select(`
-    id,
-    start_time,
-    profiles!bookings_guest_id_fkey(email, name)
-  `)
-  .gte('start_time', tomorrow.toISOString())
-  .lte('start_time', end.toISOString())
+      .from('bookings')
+      .select(`
+        id,
+        start_time,
+        profiles!bookings_guest_id_fkey(email, name)
+      `)
+      .gte('start_time', tomorrow.toISOString())
+      .lte('start_time', end.toISOString())
 
-...
+    if (error) {
+      console.error(error)
+      return Response.json({ error }, { status: 500 })
+    }
 
-for (const booking of bookings) {
-  const profile = booking.profiles as any
-  const email = profile?.email
-  const name = profile?.name || 'お客様'
+    if (!bookings || bookings.length === 0) {
+      return Response.json({ message: 'No bookings tomorrow' })
+    }
+
+    let sent = 0
+
+    for (const booking of bookings) {
+      const profile = booking.profiles as any
+      const email = profile?.email
+      const name = profile?.name || 'お客様'
       const time = new Date(booking.start_time).toLocaleString('ja-JP')
 
       if (!email) continue

@@ -12,7 +12,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function GET() {
   try {
-    // 明日の0:00〜23:59（JST）を取得
+    // 明日の0:00〜23:59を取得
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(0, 0, 0, 0)
@@ -51,7 +51,15 @@ export async function GET() {
 
       if (!email || !slotStart) continue
 
-      const time = new Date(slotStart).toLocaleString('ja-JP')
+      // ✅ JST固定で表示
+      const time = new Date(slotStart).toLocaleString('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
 
       await resend.emails.send({
         from: 'Ritz <noreply@ritz-personalgym.com>',
